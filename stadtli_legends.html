@@ -1,0 +1,628 @@
+<html lang="de"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Staedtli Legends - Ultimate</title>
+    <style>
+        /* Grundlayout */
+        body {
+            background-color: #222;
+            color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            margin: 0;
+            background: radial-gradient(circle, #2c3e50 0%, #000000 100%);
+            touch-action: none;
+            overflow: hidden;
+            user-select: none;
+        }
+        
+        h1.main-title { 
+            margin: 10px 0; 
+            text-shadow: 2px 2px #000; 
+            color: #ffcc00; 
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        
+        /* Spiel-Container */
+        #gameContainer {
+             border: 4px solid #5d4037;
+             border-radius: 6px;
+             position: relative;
+             width: 96vw;
+             max-width: 640px; 
+             height: auto; 
+             display: flex;
+             flex-direction: column;
+             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+             background-color: #000;
+             margin-bottom: 10px;
+        }
+        
+        /* Canvas */
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        #gameCanvas {
+            background-color: #222;
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16/11; 
+            object-fit: contain;
+        }
+
+        /* Info-Leiste */
+        #gameInfo {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #3e2723;
+            font-size: 0.9rem;
+            color: #ffeb3b;
+            font-weight: bold;
+            flex-shrink: 0;
+            border-bottom: 2px solid #2d1b18;
+        }
+
+        /* Overlay */
+        #overlay {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.96);
+            color: white;
+            top: 0; left: 0; right: 0; bottom: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 15px;
+            font-size: 1rem;
+            z-index: 10;
+            text-align: center;
+            overflow-y: auto; 
+        }
+
+        /* Wappen */
+        #wappenCanvas {
+            width: 70px;  
+            height: 82px; 
+            margin: 5px auto;
+            background: transparent;
+            filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+            flex-shrink: 0;
+        }
+
+        #msg { margin: 5px 0; min-height: 40px; line-height: 1.4; }
+
+        /* Buttons */
+        button {
+            padding: 10px 25px;
+            font-size: 1rem;
+            background: #ffcc00; border: none; border-radius: 50px;
+            margin-top: 10px; color: #000; font-weight: bold;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        
+        button.refresh-btn {
+            background: #444; color: #fff; font-size: 0.75rem; 
+            padding: 5px 12px; margin-top: 5px; 
+            box-shadow: none; border: 1px solid #666;
+        }
+        
+        button.start-btn { animation: pulse 1.5s infinite; }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Highscore Liste */
+        #leaderboardContainer {
+            margin-top: 10px;
+            width: 85%;
+            max-width: 320px;
+            background: rgba(255, 255, 255, 0.08);
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            min-height: 120px;
+            margin-bottom: 20px; 
+        }
+        #leaderboardTitle { color: #aaa; font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 5px; text-transform: uppercase; }
+        
+        table.highscore-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; text-align: left; }
+        table.highscore-table td { padding: 4px 6px; border-bottom: 1px solid #333; }
+        table.highscore-table tr:first-child td { color: #ffeb3b; font-weight: bold; }
+        table.highscore-table td:nth-child(1) { width: 20px; color: #666; }
+        table.highscore-table td:nth-child(3) { text-align: right; color: #fff; }
+
+        /* Eingabefeld */
+        #inputSection { display: none; margin-top: 10px; }
+        input#playerName { 
+            padding: 10px; font-size: 1.1rem; border-radius: 4px; border: 2px solid #ffcc00; 
+            background: #222; color: white; width: 180px; text-align: center; outline: none;
+        }
+
+        /* Steuerung */
+        #dpad {
+            margin-top: 5px;
+            display: grid;
+            grid-template-columns: 60px 60px 60px;
+            grid-template-rows: 55px 55px;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+        .d-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #555;
+            border-radius: 12px;
+            color: white;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+        }
+        .d-btn:active { background: rgba(255, 204, 0, 0.6); border-color: #ffcc00; }
+        
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <h1 class="main-title">🍺 Staedtli Legends 👻</h1>
+    
+    <div id="gameContainer">
+        <div id="gameInfo">
+            <span>LVL: <span id="levelDisplay">1</span></span>
+            <span>SCORE: <span id="score">0</span></span>
+            <span style="color:#aaa; font-size: 0.8em">BEST: <span id="highScore">4391</span></span>
+            <span>❤️: <span id="lives">3</span></span>
+        </div>
+        
+        <canvas id="gameCanvas" width="640" height="440"></canvas>
+        
+        <div id="overlay">
+            <span style="color:#ffcc00; font-size: 1.1rem; font-weight:bold;">STAEDTLI LEGENDS</span>
+            
+            <canvas id="wappenCanvas" width="64" height="74"></canvas>
+
+            <div id="msg">
+                <span style="font-size: 0.9rem;">Ton an? 🔊</span>
+            </div>
+
+            <button id="startBtn" class="start-btn" onclick="initAudioAndStart()">START GAME</button>
+
+            <div id="inputSection">
+                <input type="text" id="playerName" placeholder="Dein Name" maxlength="10">
+                <br>
+                <button class="submit-btn" onclick="submitHighscore()">Senden 🚀</button>
+            </div>
+
+            <div id="leaderboardContainer">
+                <div id="leaderboardTitle">Top 5 Global</div>
+                <div id="leaderboardContent">
+                    <table class="highscore-table"><tbody><tr><td>1.</td><td>Hombrecht</td><td>7939</td></tr><tr><td>2.</td><td>gh0st</td><td>3772</td></tr><tr><td>3.</td><td>Kurt</td><td>3411</td></tr><tr><td>4.</td><td>afaenger</td><td>3349</td></tr><tr><td>5.</td><td>Garajillo</td><td>1650</td></tr></tbody></table>
+                </div>
+                <button class="refresh-btn" onclick="fetchLeaderboard()">↻ Aktualisieren</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dpad">
+        <div class="d-btn" id="btn-up">⬆️</div>
+        <div class="d-btn" id="btn-left">⬅️</div>
+        <div class="d-btn" id="btn-down">⬇️</div>
+        <div class="d-btn" id="btn-right">➡️</div>
+    </div>
+
+<script>
+    // --- FEHLERABFANG ---
+    window.onerror = function(msg, url, line) {
+        console.error("Global Error:", msg, line);
+    };
+
+    // --- KONFIGURATION (1:1 ORIGINAL) ---
+    const DREAMLO_PRIVATE = "58m5p-zAwE2ESTnzbZ3zwA-yWimqDZjUCKJvlf7ZLwCA";
+    const DREAMLO_PUBLIC = "694b05078f40bbcf80643694";
+    const DREAMLO_BASE = "http://dreamlo.com/lb/";
+
+    // --- PROXY KONFIGURATION (1:1 ORIGINAL) ---
+    const PROXIES = [
+        { url: "https://corsproxy.io/?", isJsonWrapper: false }, 
+        { url: "https://api.allorigins.win/get?url=", isJsonWrapper: true }
+    ];
+
+// --- STORIES (JETZT 40 SPRÜCHE INKL. MONTY PYTHON) ---
+    const deathStories = [
+        // Klassiker & Absurdes
+        "verwickelt dich in ein endloses Gespräch über [Poss] Briefmarkensammlung.",
+        "zwingt dich, 400 unscharfe Urlaubsfotos aus Olten anzuschauen.",
+        "erklärt dir ungefragt die steuerlichen Vorteile einer Holding-Struktur.",
+        "will unbedingt, dass du [Poss] neues Krypto-Projekt 'GeisterCoin' kaufst.",
+        "liest dir [Poss] selbstgeschriebenen Haikus über Nebel vor.",
+        "blockiert den Weg und fragt nach dem Passwort für dein WLAN.",
+        "erzählt dir die komplette Handlung einer Telenovela von 1994.",
+        "möchte mit dir über deine abgelaufene Auto-Versicherung sprechen.",
+        "fragt dich nach Kleingeld für einen Parkautomaten im Jenseits.",
+        "demonstriert dir [Poss] 'einzigartige' Blockflöten-Version von My Heart Will Go On.",
+        "hält dich auf, um über die Vorzüge von laktosefreiem Käsefondue zu dozieren.",
+        "will wissen, ob du kurz Zeit hast für eine Umfrage zum Thema Geisterstunde.",
+        "verwechselt dich mit [Poss] Neffen und zeigt dir alte Strickmuster.",
+        "versucht dir ein Abo für ein Magazin über antike Türschlösser zu verkaufen.",
+        "erklärt dir haargenau, warum [P] damals beim Schulsport zu Unrecht Zweiter wurde.",
+        "singt dir ein Ständchen, trifft aber absolut keinen einzigen Ton.",
+        "braucht Hilfe beim Einrichten [Poss] Druckers ([P] ist seit 1920 tot).",
+        "diskutiert mit dir über die korrekte Aussprache von 'Chuchichäschtli'.",
+        "behauptet, [P] kenne deine Mutter und will alte Geschichten ausgraben.",
+        "hat dich einfach nur angerempelt und entschuldigt sich jetzt seit 10 Minuten.",
+
+        // Monty Python & Kult-Referenzen
+        "erklärt dir, dass dies nur eine Fleischwunde ist ('Tis but a scratch!).",
+        "behauptet steif und fest, [P] sei nicht der Messias, sondern ein sehr unartiger Junge!",
+        "fragt dich nach der Fluggeschwindigkeit einer unbeladenen Schwalbe (afrikanisch oder europäisch?).",
+        "will mit dir über die judäische Volksfront diskutieren (oder war es die Volksfront von Judäa?).",
+        "versucht dir einen toten Papagei zu verkaufen, der angeblich nur 'sehnsüchtig nach den Fjorden' ist.",
+        "verlangt von dir ein schönes Gebüsch – nicht zu teuer, aber mit einem schönen kleinen Pfad.",
+        "erzählt dir den tödlichsten Witz der Welt. Du stirbst fast vor Lachen.",
+        "hält dich für eine Hexe, weil du schwerer bist als eine Ente.",
+        "will mit dir 'Always Look on the Bright Side of Life' pfeifen.",
+        "versucht dich davon zu überzeugen, dass Steinigungen am Samstagnachmittag Tradition sind.",
+        "erklärt dir, dass [P] nur ein Geist geworden ist, weil [P] zu viele Minzblättchen gegessen hat.",
+        "droht damit, [Poss] Tante aus dem Fenster zu werfen (Monty Python lässt grüßen).",
+        "beschuldigt dich, dass deine Mutter ein Hamster war und dein Vater nach Holunderbeeren stank!",
+        "setzt dich auf die Strafbank und liest aus dem Buch der Rüstungen vor.",
+        "will wissen, ob du Steinmetz bist oder nur so tust.",
+
+        // Weitere absurde Stories
+        "erklärt dir die korrekte Falttechnik für Spannbettlaken ([P] scheitert kläglich).",
+        "zwingt dich zu einer Tupperware-Party im Geisterreich.",
+        "will unbedingt deine Meinung zu [Poss] neuem Podcast über Raufasertapeten hören.",
+        "versucht dich als Zeugen Jehovas für das Jenseits zu rekrutieren.",
+        "erzählt dir ungefragt, wie man 1985 einen Videorekorder programmiert hat."
+    ];
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    const highScoreEl = document.getElementById('highScore');
+    const levelEl = document.getElementById('levelDisplay');
+    const overlay = document.getElementById('overlay');
+    const msg = document.getElementById('msg');
+    const startBtn = document.getElementById('startBtn');
+    const inputSection = document.getElementById('inputSection');
+    const leaderboardContent = document.getElementById('leaderboardContent');
+    const playerNameInput = document.getElementById('playerName');
+
+    let globalTopScores = []; 
+
+    // ==========================================
+    // ROBUSTE NETWORK LOGIK (1:1 ORIGINAL)
+    // ==========================================
+    async function fetchTextRobust(targetUrl) {
+        for (let i = 0; i < PROXIES.length; i++) {
+            const proxy = PROXIES[i];
+            const finalUrl = `${proxy.url}${encodeURIComponent(targetUrl)}`;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000); 
+                const response = await fetch(finalUrl, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                if (!response.ok) throw new Error("Netzwerk Error");
+                if (proxy.isJsonWrapper) {
+                    const json = await response.json();
+                    return json.contents;
+                } else {
+                    return await response.text();
+                }
+            } catch (e) {
+                console.warn(`Proxy ${i} (${proxy.url}) fehlgeschlagen:`, e);
+            }
+        }
+        throw new Error("Alle Proxies offline.");
+    }
+
+    // ==========================================
+    // HIGHSCORE LOGIC (1:1 ORIGINAL)
+    // ==========================================
+    function fetchLeaderboard() {
+        leaderboardContent.innerHTML = '<span style="color:#aaa">Lade Highscores...</span>';
+        const timestamp = new Date().getTime(); 
+        const targetUrl = `${DREAMLO_BASE}${DREAMLO_PUBLIC}/pipe?t=${timestamp}`;
+        fetchTextRobust(targetUrl)
+            .then(data => { parsePipeData(data); })
+            .catch(e => {
+                console.error("Highscore Totalausfall:", e);
+                leaderboardContent.innerHTML = `<span style="color:#ff6666; font-size:0.8em">Server offline.</span><br><button class="refresh-btn" onclick="fetchLeaderboard()">Nochmal versuchen</button>`;
+            });
+    }
+
+    function parsePipeData(text) {
+        if(!text || text.trim() === "") { 
+            leaderboardContent.innerHTML = "Noch keine Einträge."; 
+            globalTopScores = [];
+            return; 
+        }
+        let entries = [];
+        const lines = text.split('\n');
+        lines.forEach(line => {
+            const parts = line.split('|');
+            if(parts.length >= 2) { entries.push({ name: parts[0], score: parseInt(parts[1]) || 0 }); }
+        });
+        entries.sort((a,b) => b.score - a.score);
+        globalTopScores = entries.slice(0, 5); 
+        renderLeaderboard(entries);
+    }
+
+    function renderLeaderboard(entries) {
+        if(entries.length === 0) { leaderboardContent.innerHTML = "Leer."; return; }
+        let html = '<table class="highscore-table">';
+        entries.slice(0, 5).forEach((entry, idx) => {
+            let safeName = escapeHtml(entry.name).substring(0, 12);
+            html += `<tr><td>${idx+1}.</td><td>${safeName}</td><td>${entry.score}</td></tr>`;
+        });
+        html += '</table>';
+        leaderboardContent.innerHTML = html;
+    }
+
+    function submitHighscore() {
+        let name = playerNameInput.value.trim();
+        if(!name) { alert("Bitte Namen eingeben!"); return; }
+        name = name.replace(/[^a-zA-Z0-9\s-_]/g, "").substring(0, 12);
+        if(!name) name = "Player";
+        const btn = document.querySelector('.submit-btn');
+        btn.disabled = true; btn.innerText = "Sende...";
+        const timestamp = new Date().getTime();
+        const targetUrl = `${DREAMLO_BASE}${DREAMLO_PRIVATE}/add/${name}/${score}?t=${timestamp}`;
+        fetchTextRobust(targetUrl)
+            .then(response => { finishSubmission(true); })
+            .catch(err => {
+                console.error("Upload fehlgeschlagen:", err);
+                finishSubmission(false);
+            });
+    }
+
+    function finishSubmission(success) {
+        const btn = document.querySelector('.submit-btn');
+        inputSection.style.display = 'none'; 
+        startBtn.style.display = 'block'; 
+        startBtn.innerText = "NEUSTART"; 
+        btn.disabled = false; 
+        btn.innerText = "Senden 🚀"; 
+        if(success) {
+            msg.innerHTML = "<span style='color:#00ff00'>GESPEICHERT!</span>";
+            setTimeout(fetchLeaderboard, 800);
+        } else {
+            msg.innerHTML = "⚠️ Offline gespeichert.<br><span style='font-size:0.7em'>Server antwortet nicht.</span>";
+        }
+    }
+
+    function escapeHtml(text) { if(!text) return ""; return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+    fetchLeaderboard();
+
+    // ==========================================
+    // WAPPEN GENERATOR (1:1 ORIGINAL)
+    // ==========================================
+    function drawStartScreenWappen() {
+        const wCanvas = document.getElementById('wappenCanvas'); if(!wCanvas) return;
+        const wCtx = wCanvas.getContext('2d');
+        const RED = '#D90000'; const YELLOW = '#FFD700'; const BLACK = '#000000';
+        const w = wCanvas.width; const h = wCanvas.height; const stripeHeight = 12;
+        wCtx.fillStyle = YELLOW; wCtx.fillRect(0, 0, w, h);
+        wCtx.fillStyle = RED; wCtx.fillRect(0, 0, w, stripeHeight); wCtx.fillRect(0, stripeHeight * 2, w, stripeHeight); wCtx.fillRect(0, stripeHeight * 4, w, stripeHeight); 
+        function drawPixelStar(cx, cy) {
+            const pixels = [{x:0,y:-4},{x:0,y:-3},{x:-2,y:-2},{x:-1,y:-2},{x:0,y:-2},{x:1,y:-2},{x:2,y:-2},{x:-3,y:-1},{x:-2,y:-1},{x:-1,y:-1},{x:0,y:-1},{x:1,y:-1},{x:2,y:-1},{x:3,y:-1},{x:-1,y:0},{x:0,y:0},{x:1,y:0},{x:-3,y:1},{x:-2,y:1},{x:-1,y:1},{x:0,y:1},{x:1,y:1},{x:2,y:1},{x:3,y:1},{x:-2,y:2},{x:-1,y:2},{x:0,y:2},{x:1,y:2},{x:2,y:2},{x:0,y:3},{x:0,y:4}];
+            wCtx.fillStyle = BLACK; pixels.forEach(p => { wCtx.fillRect(cx+p.x-1, cy+p.y, 1, 1); wCtx.fillRect(cx+p.x+1, cy+p.y, 1, 1); wCtx.fillRect(cx+p.x, cy+p.y-1, 1, 1); wCtx.fillRect(cx+p.x, cy+p.y+1, 1, 1); });
+            wCtx.fillStyle = YELLOW; pixels.forEach(p => wCtx.fillRect(cx+p.x, cy+p.y, 1, 1));
+        }
+        const starX = [10, 32, 54]; starX.forEach(x => drawPixelStar(x, 6)); starX.forEach(x => drawPixelStar(x, 30)); starX.forEach(x => drawPixelStar(x, 54));  
+        wCtx.globalCompositeOperation = 'destination-in'; wCtx.beginPath(); wCtx.moveTo(0,0); wCtx.lineTo(w, 0); wCtx.lineTo(w, h * 0.6); wCtx.bezierCurveTo(w, h, 0, h, 0, h * 0.6); wCtx.closePath(); wCtx.fill();
+        wCtx.globalCompositeOperation = 'source-over'; wCtx.strokeStyle = BLACK; wCtx.lineWidth = 2; wCtx.beginPath(); wCtx.moveTo(0,0); wCtx.lineTo(w, 0); wCtx.lineTo(w, h * 0.6); wCtx.bezierCurveTo(w, h, 0, h, 0, h * 0.6); wCtx.closePath(); wCtx.stroke();
+    }
+
+    // ==========================================
+    // GAME AUDIO & LOGIC (1:1 ORIGINAL)
+    // ==========================================
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx;
+    const Sound = {
+        init: function() { if (!audioCtx) audioCtx = new AudioContext(); if (audioCtx.state === 'suspended') audioCtx.resume(); },
+        playTone: function(freq, type, duration, vol = 0.1) { if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime); gain.gain.setValueAtTime(vol, audioCtx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + duration); },
+        playWaka: function() { if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'triangle'; osc.frequency.setValueAtTime(150, audioCtx.currentTime); osc.frequency.linearRampToValueAtTime(300, audioCtx.currentTime + 0.1); gain.gain.setValueAtTime(0.05, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.1); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.1); },
+        playBeer: function() { this.playTone(600, 'sine', 0.1, 0.2); setTimeout(() => this.playTone(900, 'square', 0.1, 0.1), 50); },
+        playGarajillo: function() { if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(200, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.3); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 0.3); },
+        playGreenTongue: function() { if(!audioCtx) return; this.playNote(1000, audioCtx.currentTime, 0.1); this.playNote(1500, audioCtx.currentTime + 0.1, 0.1); this.playNote(2000, audioCtx.currentTime + 0.2, 0.2); },
+        playCookie: function() { if(!audioCtx) return; this.playNote(200, audioCtx.currentTime, 0.2); this.playNote(400, audioCtx.currentTime+0.2, 0.2); this.playNote(800, audioCtx.currentTime+0.4, 0.4); },
+        playEatGhost: function() { if(!audioCtx) return; this.playTone(800, 'square', 0.05, 0.3); setTimeout(() => this.playTone(600, 'sawtooth', 0.05, 0.3), 50); },
+        play1Up: function() { if(!audioCtx) return; this.playNote(523.25, audioCtx.currentTime, 0.1); this.playNote(659.25, audioCtx.currentTime + 0.1, 0.1); this.playNote(783.99, audioCtx.currentTime + 0.2, 0.1); this.playNote(1046.50, audioCtx.currentTime + 0.3, 0.3); },
+        playDie: function() { if(!audioCtx) return; const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'sawtooth'; osc.frequency.setValueAtTime(400, audioCtx.currentTime); osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 1); gain.gain.setValueAtTime(0.2, audioCtx.currentTime); gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 1); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(); osc.stop(audioCtx.currentTime + 1); },
+        playWin: function() { if(!audioCtx) return; let now = audioCtx.currentTime; this.playNote(523.25, now, 0.1); this.playNote(659.25, now + 0.15, 0.1); this.playNote(783.99, now + 0.3, 0.1); this.playNote(1046.50, now + 0.45, 0.4); },
+        playNote: function(freq, time, dur) { const osc = audioCtx.createOscillator(); const gain = audioCtx.createGain(); osc.type = 'square'; osc.frequency.value = freq; gain.gain.setValueAtTime(0.1, time); gain.gain.linearRampToValueAtTime(0, time + dur); osc.connect(gain); gain.connect(audioCtx.destination); osc.start(time); osc.stop(time + dur); }
+    };
+
+    const barNames = ["Storks", "Albrechtli", "Manhattan", "Gambi", "Dock 11", "CLI", "Kellerbar"];
+    let activeLocations = [];
+    const ghostProps = [
+        { name: "RNSTL", color: "red", gender: "m" }, 
+        { name: "Dramaqueen", color: "#ff69b4", gender: "f" }, 
+        { name: "D.U.", color: "#00ffff", gender: "m" }, 
+        { name: "Quitschie", color: "#9b30ff", gender: "f" }, 
+        { name: "ManWithHat", color: "#ffae00", gender: "m" }, 
+        { name: "Womanizer", color: "#00ff00", gender: "m" }, 
+        { name: "Eagle", color: "#00bfff", gender: "m" }
+    ];
+    const tileSize = 40;
+    
+    const mapVariants = [
+        [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,8,0,0,0,0,0,1,1,0,0,0,0,0,8,1],[1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1],[1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],[1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1],[1,0,0,0,1,9,0,0,0,0,9,1,0,0,0,1],[1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1],[1,0,1,0,0,0,0,0,0,0,0,0,0,1,0,1],[1,0,1,1,1,1,0,1,1,0,1,1,1,1,0,1],[1,8,0,0,0,0,0,1,1,0,0,0,0,0,8,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
+        [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,8,0,0,0,0,0,1,0,0,0,0,0,0,8,1],[1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1],[1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1,0,1,1,1,1,0,1,1],[1,0,0,0,0,0,0,9,0,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1,0,1,1,1,1,0,1,1],[1,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1],[1,0,1,0,1,0,1,1,1,0,1,0,1,0,1,1],[1,8,0,0,0,0,0,1,0,0,0,0,0,0,8,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
+        [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,8,0,0,1,0,0,0,0,0,0,1,0,0,8,1],[1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1],[1,0,0,0,0,0,0,9,0,0,0,0,0,0,0,1],[1,0,1,1,1,1,1,0,0,1,1,1,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,1,1,1,1,1,0,0,1,1,1,1,1,0,1],[1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,1,1,0,1,0,1,1,1,1,0,1,0,1,1,1],[1,8,0,0,1,0,0,0,0,0,0,1,0,0,8,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]],
+        [[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],[1,8,0,0,0,1,0,0,0,0,0,1,0,0,8,1],[1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1],[1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1],[1,0,0,0,1,9,0,0,0,0,9,1,0,0,0,1],[1,0,1,0,1,1,1,0,0,1,1,1,0,1,0,1],[1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,1],[1,0,1,1,0,1,0,1,1,1,0,1,0,1,1,1],[1,8,0,0,0,1,0,0,0,0,0,1,0,0,8,1],[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]]
+    ];
+
+    let map=[], score=0, lives=3, gameRunning=false, beersTotal=0, wakaTimer=0;
+    let player={x:7,y:3,dx:0,dy:0,ndx:0,ndy:0}, ghosts=[];
+    let respawnPoint = {x: 7, y: 3}; 
+    let currentLevel = 1, ghostSpeed = 0.35, popup = { text: "", timer: 0, x: 0, y: 0, color: "#fff" };
+    let savedHighScore = localStorage.getItem('staedtli_legends_highscore') || 0;
+    highScoreEl.innerText = savedHighScore;
+    let startTime = 0, greenTongueCount = 0, roundsSinceLastTongue = 0, powerModeEndTime = 0;
+
+    function getRank(score) {
+        if (score < 500) return "Durlips"; if (score < 1000) return "Bokkie-Trinker"; if (score < 1500) return "Herrgöttli"; if (score < 2500) return "Altstadt Tourist"; if (score < 4000) return "Menu 1 Spezialist"; if (score < 6000) return "Bermudadreieck Pirat"; if (score < 10000) return "Profi"; if (score < 20000) return "Städtli Legende"; if (score < 60000) return "Sauchef"; return "Zähringerkönig";
+    }
+
+    function shuffleArray(array) { for (let i = array.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [array[i], array[j]] = [array[j], array[i]]; } }
+
+    function parseMap() {
+        let randIndex = Math.floor(Math.random() * mapVariants.length);
+        map = JSON.parse(JSON.stringify(mapVariants[randIndex])); 
+        ghosts=[]; beersTotal=0; activeLocations = []; popup.timer = 0; powerModeEndTime = 0;
+        let protectedSpots = [];
+        let levelGhosts = [...ghostProps];
+        shuffleArray(levelGhosts);
+        let ghostIndex = 0;
+        for(let y=0; y<map.length; y++) {
+            for(let x=0; x<map[y].length; x++) {
+                if(map[y][x]===9) { player.x=x; player.y=y; respawnPoint = {x: x, y: y}; map[y][x]=0; protectedSpots.push(`${x},${y}`); }
+                if(map[y][x]===8) { 
+                    let gp = levelGhosts[ghostIndex % levelGhosts.length]; 
+                    ghosts.push({
+                        x:x, y:y, color:gp.color, originalColor: gp.color, 
+                        name:gp.name, gender: gp.gender, startX:x, startY:y
+                    }); 
+                    ghostIndex++; map[y][x]=0; protectedSpots.push(`${x},${y}`); 
+                }
+            }
+        }
+        let freeTiles = []; 
+        for(let y=0; y<map.length; y++) {
+            for(let x=0; x<map[y].length; x++) { 
+                if(map[y][x] === 0 && !protectedSpots.includes(`${x},${y}`)) freeTiles.push({x: x, y: y}); 
+            }
+        }
+        shuffleArray(freeTiles);
+        let specialIndex = Math.floor(Math.random() * barNames.length); let tongueSpawned = false;
+        barNames.forEach((name, index) => {
+            if(index < freeTiles.length) {
+                let tile = freeTiles[index]; let type = 2; 
+                if(name === "Kellerbar" && Math.random() < 0.05) { type = 6; } 
+                else if (index === specialIndex) { let roll = Math.random(); if(roll < 0.10) { type = 5; } else if (roundsSinceLastTongue >= 3 || roll < 0.45) { type = 4; tongueSpawned = true; } else { type = 3; } }
+                map[tile.y][tile.x] = type; beersTotal++;
+                let align = "center"; if(tile.x <= 3) align = "left"; else if(tile.x >= 12) align = "right"; 
+                activeLocations.push({ name: name, x: tile.x, y: tile.y, align: align });
+            }
+        });
+        if (tongueSpawned) roundsSinceLastTongue = 0; else roundsSinceLastTongue++;
+    }
+
+    function initAudioAndStart() { Sound.init(); Sound.playNote(440, audioCtx.currentTime, 0.1); setTimeout(() => Sound.playNote(880, audioCtx.currentTime, 0.1), 150); startGame(); }
+    function startGame() { score=0; lives=3; greenTongueCount=0; roundsSinceLastTongue=0; currentLevel = 1; ghostSpeed = 0.35; scoreEl.innerText=score; livesEl.innerText=lives; levelEl.innerText = currentLevel; startBtn.style.display = 'none'; inputSection.style.display = 'none'; startNextLevel(); }
+    function startNextLevel() { startTime = Date.now(); parseMap(); overlay.style.display='none'; gameRunning=true; player.dx=0; player.dy=0; player.ndx=0; player.ndy=0; gameLoop(); }
+    function setDir(dx, dy) { if(gameRunning) { player.ndx = dx; player.ndy = dy; } }
+    document.querySelectorAll('.d-btn').forEach(btn => { btn.addEventListener('pointerdown', (e) => { e.preventDefault(); if(btn.id==='btn-up') setDir(0, -1); if(btn.id==='btn-down') setDir(0, 1); if(btn.id==='btn-left') setDir(-1, 0); if(btn.id==='btn-right') setDir(1, 0); }); });
+    document.addEventListener('keydown', (e) => { if(["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key)) e.preventDefault(); if(e.key === 'ArrowUp') setDir(0, -1); if(e.key === 'ArrowDown') setDir(0, 1); if(e.key === 'ArrowLeft') setDir(-1, 0); if(e.key === 'ArrowRight') setDir(1, 0); });
+    function canMove(x, y) { return y>=0 && y<map.length && x>=0 && x<map[0].length && map[y][x]!==1; }
+    
+    function update() {
+        let moved = false; if(canMove(player.x+player.ndx, player.y+player.ndy)) { player.dx=player.ndx; player.dy=player.ndy; player.x+=player.dx; player.y+=player.dy; moved=true; } else if(canMove(player.x+player.dx, player.y+player.dy)) { player.x+=player.dx; player.y+=player.dy; moved=true; }
+        if(moved && ++wakaTimer % 2 === 0) Sound.playWaka();
+        let tileType = map[player.y][player.x];
+        if(tileType >= 2) {
+            if(tileType === 6) {
+                map[player.y][player.x] = 0; Sound.playWin(); showPopup("WERNIBURGER! 🍔 +500 & CLEAR!", "#ffaa00");
+                let clearBonus = 0; for(let y=0; y<map.length; y++) { for(let x=0; x<map[y].length; x++) { let t = map[y][x]; if(t >= 2 && t <= 5) { if(t === 2) clearBonus += 100; if(t === 3) clearBonus += 200; if(t === 4) clearBonus += 333; if(t === 5) clearBonus += 666; map[y][x] = 0; } } }
+                score += clearBonus + 500; scoreEl.innerText = score; levelComplete(); return; 
+            }
+            map[player.y][player.x] = 0; beersTotal--;
+            if(tileType === 2) { score += 100; Sound.playBeer(); } else if (tileType === 3) { score += 200; Sound.playGarajillo(); showPopup("GARAJILLO!", "#ff9800"); } else if (tileType === 4) { score += 333; greenTongueCount++; if(greenTongueCount % 2 === 0) { lives++; livesEl.innerText = lives; Sound.play1Up(); showPopup("+1 LEBEN! 👅", "#00ff00"); } else { Sound.playGreenTongue(); showPopup("GRÜNE ZUNGE!", "#00ff00"); } } else if (tileType === 5) { score += 666; Sound.playCookie(); showPopup("COOKIE! 👻 GHOSTS ESSBAR!", "#ffffff"); powerModeEndTime = Date.now() + 20000; }
+            scoreEl.innerText = score; if(beersTotal<=0) levelComplete();
+        }
+        let isPowered = (Date.now() < powerModeEndTime);
+        ghosts.forEach(g => {
+            checkGhostCollision(g, isPowered);
+            if(gameRunning && Math.random() < ghostSpeed) { let dirs=[[0,1],[0,-1],[1,0],[-1,0]].filter(d=>canMove(g.x+d[0], g.y+d[1])); if(dirs.length) { let m=dirs[Math.floor(Math.random()*dirs.length)]; g.x+=m[0]; g.y+=m[1]; } }
+            if(gameRunning) checkGhostCollision(g, isPowered);
+        });
+    }
+    
+    function checkGhostCollision(g, isPowered) { if(g.x===player.x && g.y===player.y) { if(isPowered) { Sound.playEatGhost(); score += 150; scoreEl.innerText = score; showPopup("GEIST GEFRESSEN! +150", "#00ffff"); const corners = [{x: 1, y: 1}, {x: 14, y: 1}, {x: 1, y: 9}, {x: 14, y: 9}]; let furthestCorner = corners[0]; let maxDist = -1; corners.forEach(c => { if(map[c.y][c.x] !== 1) { let dist = Math.abs(c.x - player.x) + Math.abs(c.y - player.y); if(dist > maxDist) { maxDist = dist; furthestCorner = c; } } }); g.x = furthestCorner.x; g.y = furthestCorner.y; } else { handleDeath(g.name); } } }
+    function showPopup(text, color) { popup.text = text; popup.timer = 60; popup.color = color; popup.x = player.x * tileSize + tileSize/2; popup.y = player.y * tileSize; }
+    function levelComplete() { gameRunning = false; Sound.playWin(); let elapsed = (Date.now() - startTime) / 1000; let timeBonus = Math.max(0, Math.floor(500 - (elapsed * 5))); score += timeBonus; scoreEl.innerText = score; checkHighScore(); currentLevel++; levelEl.innerText = currentLevel; if(ghostSpeed < 0.95) { ghostSpeed += 0.05; } msg.innerHTML = `RUNDE GESCHAFFT!<br><span style="font-size:0.7em">Zeit-Bonus: +${timeBonus}</span><br><br>Nächster Level: ${currentLevel}`; overlay.style.display = 'flex'; startBtn.style.display = 'none'; inputSection.style.display = 'none'; requestAnimationFrame(drawStartScreenWappen); setTimeout(() => { startNextLevel(); }, 2500); }
+    
+    // --- ANGEPASSTE HANDLEDEATH FUNKTION ---
+    function handleDeath(name) { 
+        if(!gameRunning) return; 
+        gameRunning = false; lives--; livesEl.innerText=lives; Sound.playDie(); 
+        
+        // GEIST FINDEN UM GESCHLECHT ZU ERMITTELN
+        const ghost = ghosts.find(g => g.name === name);
+        const gender = (ghost && ghost.gender) ? ghost.gender : 'm';
+        
+        // ZUFÄLLIGE STORY AUSWÄHLEN UND ANPASSEN
+        let randomStory = deathStories[Math.floor(Math.random() * deathStories.length)];
+        
+        // Platzhalter ersetzen
+        if (gender === 'f') {
+            randomStory = randomStory.replace(/\[P\]/g, "sie").replace(/\[Poss\]/g, "ihre");
+        } else {
+            randomStory = randomStory.replace(/\[P\]/g, "er").replace(/\[Poss\]/g, "seine");
+        }
+        
+        let deathMsg = `<span style="color:#ffcc00; font-weight:bold;">${name}</span> ${randomStory}`;
+        if(lives > 0) deathMsg += `<br><span style='font-size:0.75em; color:#ff6666;'>-1 Leben</span>`; 
+        
+        msg.innerHTML = deathMsg; overlay.style.display = 'flex'; startBtn.style.display = 'none'; inputSection.style.display = 'none'; 
+        requestAnimationFrame(drawStartScreenWappen); 
+        
+        if(lives<=0) { 
+            checkHighScore(); 
+            setTimeout(() => { 
+                let rank = getRank(score); 
+                let finalMsg = `GAME OVER<br><span style="color:#ffcc00; font-size:1.1em">RANG: ${rank}</span>`; 
+                let qualifiesForTop5 = (globalTopScores.length < 5 || score > globalTopScores[globalTopScores.length - 1].score);
+                if (qualifiesForTop5) {
+                    finalMsg += "<br><span style='color:#00ff00; font-weight:bold'>NEUER HIGHSCORE! 🏆</span>";
+                    msg.innerHTML = finalMsg; 
+                    inputSection.style.display = 'block'; 
+                } else {
+                    finalMsg += "<br><span style='color:#aaa; font-size:0.7em'>Reicht nicht für Top 5.</span>";
+                    msg.innerHTML = finalMsg; 
+                    startBtn.style.display = 'block'; 
+                    startBtn.innerText = "NEUSTART";
+                }
+            }, 1500); 
+        } else { 
+            setTimeout(() => { overlay.style.display = 'none'; gameRunning = true; player.x = respawnPoint.x; player.y = respawnPoint.y; player.dx=0; player.dy=0; player.ndx=0; player.ndy=0; ghosts.forEach(g => { g.x = g.startX; g.y = g.startY; }); gameLoop(); }, 6000); 
+        } 
+    }
+    
+    function checkHighScore() { if(score > savedHighScore) { savedHighScore = score; localStorage.setItem('staedtli_legends_highscore', savedHighScore); highScoreEl.innerText = savedHighScore; return true; } return false; }
+    
+    // --- DRAW FUNCTIONS ---
+    function drawGarajillo(x, y, s) { const cx = x + s / 2; const cy = y + s / 2; ctx.strokeStyle = "#FFF"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(cx + 8, cy + 2, 4, 1.5 * Math.PI, 0.5 * Math.PI); ctx.stroke(); ctx.fillStyle = "#FFF"; ctx.beginPath(); ctx.moveTo(cx - 10, cy - 5); ctx.lineTo(cx + 10, cy - 5); ctx.quadraticCurveTo(cx + 8, cy + 10, cx, cy + 10); ctx.quadraticCurveTo(cx - 8, cy + 10, cx - 10, cy - 5); ctx.fill(); ctx.strokeStyle = "#E0E0E0"; ctx.lineWidth = 1; ctx.stroke(); ctx.fillStyle = "#211715"; ctx.beginPath(); ctx.ellipse(cx, cy - 5, 10, 3, 0, 0, Math.PI * 2); ctx.fill(); }
+    function drawGreenTongue(x, y, s) { const cx = x + s/2; const cy = y + s/2; ctx.fillStyle = "rgba(255,255,255,0.4)"; ctx.beginPath(); ctx.moveTo(cx - 6, cy - 10); ctx.lineTo(cx + 6, cy - 10); ctx.lineTo(cx + 4, cy + 10); ctx.lineTo(cx - 4, cy + 10); ctx.fill(); ctx.fillStyle = "#00ff00"; ctx.beginPath(); ctx.moveTo(cx - 5, cy - 5); ctx.lineTo(cx + 5, cy - 5); ctx.lineTo(cx + 3.5, cy + 9); ctx.lineTo(cx - 3.5, cy + 9); ctx.fill(); }
+    function drawCookie(x, y, s) { const cx = x + s/2; const cy = y + s/2; ctx.fillStyle = "#8B4513"; ctx.beginPath(); ctx.arc(cx, cy, s/2 - 5, 0, Math.PI*2); ctx.fill(); ctx.fillStyle = "#000"; ctx.beginPath(); ctx.arc(cx-5, cy-5, 2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(cx+6, cy-2, 2, 0, Math.PI*2); ctx.fill(); ctx.beginPath(); ctx.arc(cx-2, cy+6, 2, 0, Math.PI*2); ctx.fill(); }
+    function drawBurger(x, y, s) { const cx = x + s/2; const cy = y + s/2; ctx.fillStyle = "#f4a460"; ctx.fillRect(cx - 10, cy + 5, 20, 5); ctx.fillStyle = "#8b4513"; ctx.fillRect(cx - 11, cy + 1, 22, 4); ctx.fillStyle = "#32cd32"; ctx.fillRect(cx - 11, cy - 2, 22, 3); ctx.fillStyle = "#f4a460"; ctx.beginPath(); ctx.arc(cx, cy - 2, 10, Math.PI, 0); ctx.fill(); }
+
+    function draw() { ctx.fillStyle="#333"; ctx.fillRect(0,0,canvas.width,canvas.height); for(let y=0;y<map.length;y++) for(let x=0;x<map[y].length;x++) { let px=x*tileSize, py=y*tileSize; if(map[y][x]===1) { ctx.fillStyle="#8d6e63"; ctx.fillRect(px,py,tileSize,tileSize); ctx.strokeStyle="#4e342e"; ctx.lineWidth=2; ctx.strokeRect(px,py,tileSize,tileSize); ctx.fillStyle="#6d4c41"; ctx.fillRect(px+5, py+5, tileSize-10, tileSize/2 - 5); } if(map[y][x]===2) { ctx.fillStyle="#ffca28"; ctx.fillRect(px+10,py+5,20,30); ctx.strokeStyle="#fff"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(px+28,py+10); ctx.quadraticCurveTo(px+38,py+20,px+28,py+30); ctx.stroke(); ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(px+20,py+5,8,0,Math.PI*2); ctx.fill(); } if(map[y][x]===3) drawGarajillo(px, py, tileSize); if(map[y][x]===4) drawGreenTongue(px, py, tileSize); if(map[y][x]===5) drawCookie(px, py, tileSize); if(map[y][x]===6) drawBurger(px, py, tileSize); } ctx.fillStyle="white"; ctx.font="bold 13px sans-serif"; ctx.shadowColor="black"; ctx.shadowBlur=4; activeLocations.forEach(l => { if(map[l.y][l.x]!==0) { let alignX = l.x*tileSize+(l.align==='left'?-10:l.align==='right'?50:20); ctx.textAlign = l.align; ctx.fillText(l.name, alignX, l.y*tileSize-5); } }); ctx.shadowBlur=0; let cx=player.x*tileSize+20, cy=player.y*tileSize+20; let angle=0; if(player.dx===-1)angle=Math.PI; if(player.dy===1)angle=Math.PI/2; if(player.dy===-1)angle=-Math.PI/2; let mouth = 0.2 + 0.2 * Math.sin(Date.now()/150); ctx.fillStyle="#ffeb3b"; ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,18, angle+mouth, angle+(Math.PI*2-mouth)); ctx.fill(); let isPowered = (Date.now() < powerModeEndTime); ghosts.forEach(g => { let gx=g.x*tileSize, gy=g.y*tileSize; let drawColor = isPowered ? "#2121de" : g.color; ctx.fillStyle=drawColor; ctx.beginPath(); ctx.arc(gx+20,gy+16,16,Math.PI,0); ctx.lineTo(gx+36,gy+36); ctx.lineTo(gx+4,gy+36); ctx.fill(); if(isPowered) { ctx.fillStyle="#e0e0ff"; ctx.fillRect(gx+12, gy+14, 6, 2); ctx.fillRect(gx+22, gy+14, 6, 2); } else { ctx.fillStyle="white"; ctx.beginPath(); ctx.arc(gx+14,gy+14,4,0,Math.PI*2); ctx.arc(gx+26,gy+14,4,0,Math.PI*2); ctx.fill(); ctx.fillStyle="blue"; ctx.beginPath(); ctx.arc(gx+14,gy+14,2,0,Math.PI*2); ctx.arc(gx+26,gy+14,2,0,Math.PI*2); ctx.fill(); } if(!isPowered) { ctx.fillStyle=g.color; ctx.textAlign="center"; ctx.font="bold 11px Arial"; ctx.shadowColor="black"; ctx.shadowBlur=3; ctx.fillText(g.name, gx+20, gy-4); ctx.shadowBlur=0; } }); if (isPowered) { let remaining = Math.ceil((powerModeEndTime - Date.now()) / 1000); ctx.save(); ctx.fillStyle = "rgba(0, 0, 0, 0.5)"; ctx.fillRect(canvas.width/2 - 100, 5, 200, 30); ctx.fillStyle = remaining <= 5 ? "#ff3333" : "#00ffff"; ctx.font = "bold 20px Arial"; ctx.textAlign = "center"; ctx.fillText("COOKIE POWER: " + remaining, canvas.width/2, 27); ctx.restore(); } if(popup.timer > 0) { popup.timer--; ctx.save(); ctx.globalAlpha = Math.min(1, popup.timer / 20); ctx.font = "bold 24px Arial"; ctx.fillStyle = popup.color; ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.textAlign = "center"; let floatY = popup.y - (60 - popup.timer); ctx.strokeText(popup.text, popup.x, floatY); ctx.fillText(popup.text, popup.x, floatY); ctx.restore(); } }
+    function gameLoop() { if(gameRunning) { update(); draw(); setTimeout(() => { requestAnimationFrame(gameLoop); }, 130); } }
+    drawStartScreenWappen(); ctx.fillStyle="#222"; ctx.fillRect(0,0,640,440);
+</script>
+</body></html>
