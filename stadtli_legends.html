@@ -20,14 +20,6 @@
             user-select: none;
         }
         
-        h1.main-title { 
-            margin: 10px 0; 
-            text-shadow: 2px 2px #000; 
-            color: #ffcc00; 
-            font-size: 1.3rem;
-            flex-shrink: 0;
-        }
-        
         /* Spiel-Container */
         #gameContainer {
              border: 4px solid #5d4037;
@@ -82,9 +74,11 @@
             justify-content: flex-start;
             padding-top: 15px;
             font-size: 1rem;
-            z-index: 10;
+            z-index: 100;
             text-align: center;
             overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+            touch-action: manipulation;
         }
 
         /* Wappen */
@@ -185,8 +179,6 @@
 </head>
 <body>
 
-    <h1 class="main-title">🍺 Staedtli Legends 👻</h1>
-    
     <div id="gameContainer">
         <div id="gameInfo">
             <span>LVL: <span id="levelDisplay">1</span></span>
@@ -198,7 +190,7 @@
         <canvas id="gameCanvas" width="640" height="440"></canvas>
         
         <div id="overlay">
-            <span style="color:#ffcc00; font-size: 1.1rem; font-weight:bold;">STAEDTLI LEGENDS</span>
+            <span style="color:#ffcc00; font-size: 1.1rem; font-weight:bold;">🍺 STAEDTLI LEGENDS 👻</span>
             
             <canvas id="wappenCanvas" width="64" height="74"></canvas>
 
@@ -360,7 +352,7 @@
             return; 
         }
         let entries = [];
-        const lines = text.split('\n');
+        const lines = text.split(/\r?\n/);
         lines.forEach(line => {
             const parts = line.split('|');
             if(parts.length >= 2) { entries.push({ name: parts[0], score: parseInt(parts[1]) || 0 }); }
@@ -487,7 +479,7 @@
     let map=[], score=0, lives=3, gameRunning=false, beersTotal=0, wakaTimer=0;
     let player={x:7,y:3,dx:0,dy:0,ndx:0,ndy:0}, ghosts=[];
     let respawnPoint = {x: 7, y: 3}; 
-    let currentLevel = 1, ghostSpeed = 0.35, popups = [];
+    let currentLevel = 1, ghostSpeed = 0.25, popups = [];
     let comboCount = 0, lastBeerTime = 0, lastGarajilloTime = 0;
 
     const levelThemes = {
@@ -560,7 +552,7 @@
         setTimeout(() => Sound.playNote(880, audioCtx.currentTime, 0.1), 150); 
         startGame(); 
     }
-    function startGame() { score=0; lives=3; greenTongueCount=0; roundsSinceLastTongue=0; currentLevel = 1; ghostSpeed = 0.35; scoreEl.innerText=score; livesEl.innerText=lives; levelEl.innerText = currentLevel; startBtn.style.display = 'none'; inputSection.style.display = 'none'; startNextLevel(); }
+    function startGame() { score=0; lives=3; greenTongueCount=0; roundsSinceLastTongue=0; currentLevel = 1; ghostSpeed = 0.25; scoreEl.innerText=score; livesEl.innerText=lives; levelEl.innerText = currentLevel; startBtn.style.display = 'none'; inputSection.style.display = 'none'; startNextLevel(); }
     function startNextLevel() { startTime = Date.now(); parseMap(); overlay.style.display='none'; gameRunning=true; player.dx=0; player.dy=0; player.ndx=0; player.ndy=0; gameLoop(); }
     function setDir(dx, dy) { if(gameRunning) { player.ndx = dx; player.ndy = dy; } }
     document.querySelectorAll('.d-btn').forEach(btn => { 
